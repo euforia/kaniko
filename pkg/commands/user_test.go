@@ -16,12 +16,26 @@ limitations under the License.
 package commands
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/GoogleContainerTools/kaniko/testutil"
 	"github.com/containers/image/manifest"
 	"github.com/docker/docker/builder/dockerfile/instructions"
 )
+
+func testGroup() (group string) {
+	goos := runtime.GOOS
+	switch goos {
+	case "darwin", "openbsd", "freebsd", "netbsd":
+		group = "wheel"
+
+	default:
+		group = "root"
+
+	}
+	return
+}
 
 var userTests = []struct {
 	user        string
@@ -44,12 +58,12 @@ var userTests = []struct {
 		shouldError: true,
 	},
 	{
-		user:        "root:root",
+		user:        "root:" + testGroup(),
 		expectedUid: "0:0",
 		shouldError: false,
 	},
 	{
-		user:        "0:root",
+		user:        "0:" + testGroup(),
 		expectedUid: "0:0",
 		shouldError: false,
 	},
@@ -85,7 +99,7 @@ func TestUpdateUser(t *testing.T) {
 		cfg := &manifest.Schema2Config{
 			Env: []string{
 				"envuser=root",
-				"envgroup=root",
+				"envgroup=" + testGroup(),
 			},
 		}
 		cmd := UserCommand{
